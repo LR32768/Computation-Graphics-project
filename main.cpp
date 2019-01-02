@@ -17,8 +17,10 @@ Vec radiance(const Ray &r, int depth){
 	//printf("entered!\n");
 	const Sphere &obj = spheres[id];        // the hit object 
 	Vec x=r.o+r.d*t, n=(x-obj.p).norm(), nl=n.dot(r.d)<0?n:n*-1, f=obj.c; 
-	double p = f.x>f.y && f.x>f.z ? f.x : f.y>f.z ? f.y : f.z; // max refl 
-	if (++depth>5) if (rand01()<p) f=f*(1/p); else return obj.e; //R.R. 
+	double p = (f.x > f.y) && f.x > f.z ? f.x : f.y>f.z ? f.y : f.z; // max refl 
+	if (++depth > 5) 
+		if (rand01() < p) f = f * (1/p); 
+		else return obj.e; //R.R. 
 	if (obj.refl == DIFF){                  // Ideal DIFFUSE reflection 
 		double r1=2*M_PI*rand01(), r2=rand01(), r2s=sqrt(r2); 
 		Vec w=nl, u=((fabs(w.x)>.1?Vec(0,1):Vec(1))%w).norm(), v=w%u; 
@@ -33,13 +35,14 @@ Vec radiance(const Ray &r, int depth){
 		return obj.e + f.mult(radiance(reflRay,depth)); 
 	Vec tdir = (r.d*nnt - n*((into?1:-1)*(ddn*nnt+sqrt(cos2t)))).norm(); 
 	double a = nt-nc, b=nt+nc, R0 = a*a/(b*b), c = 1-(into?-ddn:tdir.dot(n)); 
-	double Re=R0 + (1-R0)*c*c*c*c*c, Tr=1-Re, P=.25+.5*Re,RP=Re/P,TP = Tr/(1-P); 
+	double Re = R0 + (1-R0)*c*c*c*c*c, Tr = 1-Re, P=.25+.5*Re,RP=Re/P,TP = Tr/(1-P); 
 	return obj.e + f.mult(depth > 2 ? (rand01()<P ?   // Russian roulette 
 				radiance(reflRay,depth)*RP:radiance(Ray(x,tdir),depth)*TP) : 
 			radiance(reflRay,depth)*Re+radiance(Ray(x,tdir),depth)*Tr); 
-} 
+}
+
 int main(int argc, char *argv[]){ 
-	int w=1024, h=768, samps = argc==2 ? atoi(argv[1])/4 : 1; // # samples  
+	int w=256, h=178, samps = argc==2 ? atoi(argv[1])/4 : 1; // # samples  
 	Vec cx=Vec(w*.5135/h), cy=(cx%cam.d).norm()*.5135, r, *c=new Vec[w*h]; 
 #pragma omp parallel for schedule(dynamic, 1) private(r)       // OpenMP 
 	for (int y=0; y<h; y++){                       // Loop over image rows 

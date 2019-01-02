@@ -4,6 +4,7 @@
  */
 #ifndef MATHS_H_
 #define MATHS_H_
+#include <cmath>
 #define INF 1e20
 #define EPS 1e-4
 
