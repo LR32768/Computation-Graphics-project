@@ -1,4 +1,4 @@
-#include "math.h"
+#include "maths.h"
 #include <iostream>
 using namespace std;
 
@@ -16,6 +16,6 @@ int main()
 	cout << "dot: " << a.dot(b) << endl;
 	vprint(a % b);
 	for (int i = 0; i < 100; i++)
-		cout << frand() % 1000000 << endl;
+		cout << rand01() << endl;
 	return 0;
 }
