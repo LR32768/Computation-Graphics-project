@@ -32,7 +32,7 @@ class Texture {
 			fgets(tmp, 100, f);
 			fgets(tmp, 100, f);
 			fscanf(f,"%d%d%*d\n", &w, &h);
-			printf("we have %d*%d", w, h);
+			printf("we have %d*%d image as texture.\n", w, h);
 			pattern.resize(h);
 			for (int i = 0; i < h; i ++) {
 				pattern[i].resize(w);
@@ -44,7 +44,7 @@ class Texture {
 					pattern[i][j] = Vec(double(ta) / 255.0, double(tb) / 255.0, double(tc) / 255.0);
 				}
 			}
-			printf("Texture%d*%d loaded finish!\n", w, h);
+			printf("Texture %d*%d loaded finish!\n", w, h);
 		}
 
 
@@ -76,7 +76,7 @@ class SphereObj: public Object {
 			Vec op = o-r.o; // Solve t^2*d.d + 2*t*(o-p).d + (o-p).(o-p)-R^2 = 0 
 			double t, b = op.dot(r.d), det=b*b - op.dot(op) + rad*rad; 
 			if (det<0) return 0; else det=sqrt(det); 
-			return (t = b-det) > EPS ? t : ((t = b+det) > EPS ? t : 0); 
+			return (t = b-det) > EPS ? t : ((t = b+det) > EPS ? t : -1); 
 		}
 		virtual Vec get_norm(const Vec& pos) const
 		{
@@ -104,19 +104,17 @@ class TriangleObj: public Object {
 		{ Vec _n = (a-b) % (c-b); n = _n.norm(); }
 		virtual double intersect(const Ray &r)
 		{
-			Vec E1 = b - a;
-			Vec E2 = c - a;
-			Vec P = r.d % E2;
+			Vec E1 = b - a, E2 = c - a, P = r.d % E2, T;
 			double det = E1.dot(P);
-			Vec T;
-			if( det >0 ) { T = r.o - a; } else { T = a - r.o; det = -det; }
-			if( det < EPS )	return false;
+			if( det > 0 ) { T = r.o - a; } else { T = a - r.o; det = -det; }
+			if( det < EPS )	return -1;
 			double u = T.dot(P);
-			if( u < 0.0f || u > det )	return false;
+			if( u < 0.0f || u > det )	return -1;
 			Vec Q = T % E1;
 			double v = r.d.dot(Q);
-			if( v < 0.0f || u + v > det )	return false;
-			return E2.dot(Q) / det;
+			if( v < 0.0f || u + v > det )	return -1;
+			double ans = E2.dot(Q) / det;
+			return ans > EPS ? ans : -1;
 		}
 		virtual Vec get_norm(const Vec & pos) const { return n; }
 		virtual Vec get_color(const Vec& pos) const
