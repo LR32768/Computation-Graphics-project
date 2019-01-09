@@ -2,6 +2,8 @@
 *.swo
 *.swn
 *.ppm
+*.png
+*.max
 *.obj
 *.exe
 pic/
