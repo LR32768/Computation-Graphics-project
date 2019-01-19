@@ -11,18 +11,69 @@
 #include <cstdio>
 #include <vector>
 
-//Hit point structure
-///record the hitting point 
-struct Hitpoint{
-
-
+//A link list for the hitpoint
+struct hpList {
+	Hitpoint* hp;
+	hpList* next=NULL;
+	hpList(Hitpoint* _hp = NULL, hpList* _next = NULL) : hp(_hp), next(_next) {}
 };
 
+//add one hitpoint to the list
+hpList* ListAdd(Hitpoint* _hp, hpList* oldlist) {
+	hpList* p = new hpList(_hp, oldlist);
+	return p;
+}
+
+// A hash table data structure for finding hitting points recorded somewhere in the space
+class SpaceHash {
+public:
+	std::vector<std::vector<Hitpoint*> > HitList;
+	double stride = .2;
+	int tablesize;
+	SpaceHash () {}
+	void initial (int size = 10000000) {
+		HitList.clear();
+		HitList.resize(size);
+		tablesize = size;
+	}
+	unsigned int hash_int(const int a, const int b, const int c) { 
+	//simple hash function for int
+		unsigned int pr1 = 73850693, pr2 = 83492791, pr3 = 19349663;
+		unsigned key = ((pr1 * a) ^ (pr2 * b) ^ (pr3 * c)) % tablesize;
+		return key;
+	}
+	unsigned int hash_pos(const Vec pos) { 
+	//simple hash function	
+		int dx = floor(pos.x / stride), dy = floor(pos.y / stride), dz = floor(pos.z / stride);
+		return hash_int(dx, dy, dz);
+	}
+	std::vector<Hitpoint*>& lookup(const Vec pos) {
+		int key = hash_pos(pos);
+		return HitList[key];
+	}
+	void insert(Hitpoint* newp)
+	{
+		//printf("get hit point at %lf,%lf,%lf\n", newp->pos.x, newp->pos.y, newp->pos.z);
+		//printf("x range %d to %d\n", int((newp->pos.x - newp->radius) / stride), int((newp->pos.x + newp->radius) / stride));
+		//printf("y range %d to %d\n", int((newp->pos.y - newp->radius) / stride), int((newp->pos.y + newp->radius) / stride));
+		//printf("z range %d to %d\n", int((newp->pos.z - newp->radius) / stride), int((newp->pos.z + newp->radius) / stride));
+		for(int _dx = int((newp->pos.x - newp->radius) / stride);  _dx <= int((newp->pos.x + newp->radius) / stride); _dx ++)
+			for(int _dy = int((newp->pos.y - newp->radius) / stride);  _dy <= int((newp->pos.y + newp->radius) / stride); _dy ++)
+				for(int _dz = int((newp->pos.z - newp->radius) / stride);  _dz <= int((newp->pos.z + newp->radius) / stride); _dz ++)
+					{
+						unsigned int key = hash_int(_dx, _dy, _dz);
+						//printf("The key is %d\n", key);
+						HitList[key].push_back(newp);
+					}
+		//printf("insert finished!\n");
+	}
+};
 
 //Box: bounding box
 struct Box{
 	Vec bounds[2];
 	//bounds[0] is the min axis for box and bounds[1] is the max
+	Box() : bounds({Vec(INF, INF, INF), Vec(-INF, -INF, -INF)}) {}
 
 	void update(const Vec &v)
 	{
@@ -87,8 +138,8 @@ void load_obj(char* objpath, Vec b = Vec(), Vec k = Vec(1,1,1), int threshold = 
 			--na; --nb; --nc; --nd;
 			//printf("reading quadra no %d,%d,%d,%d\n", na, nb, nc, nd);
 			//change this line's reflection type into REFR after testing and debugging
-			Object* tri1 = new TriangleObj(vpoints[na], vpoints[nb], vpoints[nc], Vec(), Vec(), DIFF); 
-			Object* tri2 = new TriangleObj(vpoints[nc], vpoints[nd], vpoints[na], Vec(), Vec(), DIFF);
+			Object* tri1 = new TriangleObj(vpoints[na], vpoints[nb], vpoints[nc], Vec(), Vec(), REFR); 
+			Object* tri2 = new TriangleObj(vpoints[nc], vpoints[nd], vpoints[na], Vec(), Vec(), REFR);
 			ftail++;
 			tri_obj.push_back(tri1);
 			tri_obj.push_back(tri2);
@@ -103,6 +154,25 @@ void load_obj(char* objpath, Vec b = Vec(), Vec k = Vec(1,1,1), int threshold = 
 			break;
 	}
 	printf("Loading finished! Totally %d faces.\n", ftail);
+}
+
+
+//Generating random photon's starting position and direction
+void genp(Ray* pr, Vec* f, double ratio) {
+	*f = Vec(2500, 2500, 2500) * M_PI * 7.0;
+	double p = 2. * M_PI * rand01(), t = 2. * acos(sqrt(1.-rand01()));
+	double st = sin(t);
+	pr->d = Vec(cos(p)*st,cos(t),sin(p)*st);
+	Vec dev = Vec(20 * rand01() - 10, 0, 20 * rand01() - 10);
+	pr->o = Vec(50, 60, 85) + dev; //to be adjusted into random starting posistion
+}
+
+void newgenp(Ray *pr, Vec* f, double ratio) {
+	*f = Vec(2500, 2500, 2500) * M_PI * 5.0;
+	double theta = M_PI * .2 * rand01(), phi = M_PI * 2. * rand01();
+	pr->d = Vec(sin(phi) * sin(theta), cos(theta), cos(phi) * sin(theta)).norm();
+	double theta2 = M_PI * 2. * rand01(), rho = rand01() * 5.;
+	pr->o = Vec(70, 80, 40) + Vec(sin(theta2) * rho, 0, cos(theta2) * rho);
 }
 
 #endif
